@@ -1,0 +1,118 @@
+
+Set B (Practice Assignment)
+Q1. Write a python program to implement the given below Activation Functions of neural networks
+import numpy as np
+import matplotlib.pyplot as plt
+
+a)Hard Tanh
+# a) Hard Tanh Activation Function
+def hard_tanh(x):
+    return np.where(x > 1, 1, np.where(x < -1, -1, x))
+# Plot for Hard Tanh
+plt.subplot(1, 3, 1)
+plt.plot(x, y_hard_tanh, label='Hard Tanh', color='blue')
+plt.title('Hard Tanh Activation')
+plt.grid(True)
+plt.xlabel('Input')
+plt.ylabel('Output')
+
+b)Leaky ReLU
+# b) Leaky ReLU Activation Function
+def leaky_relu(x, alpha=0.01):
+    return np.where(x > 0, x, alpha * x)
+# Plot for Leaky ReLU
+plt.subplot(1, 3, 2)
+plt.plot(x, y_leaky_relu, label='Leaky ReLU', color='green')
+plt.title('Leaky ReLU Activation')
+plt.grid(True)
+plt.xlabel('Input')
+
+c)ELU
+# c) ELU Activation Function
+def elu(x, alpha=1.0):
+    return np.where(x > 0, x, alpha * (np.exp(x) - 1))
+# Plot for ELU
+plt.subplot(1, 3, 3)
+plt.plot(x, y_elu, label='ELU', color='red')
+plt.title('ELU Activation')
+plt.grid(True)
+plt.xlabel('Input')
+
+#Generate input data
+x = np.linspace(-3, 3, 400)
+#Compute the outputs for each activation function
+y_hard_tanh = hard_tanh(x)
+y_leaky_relu = leaky_relu(x)
+y_elu = elu(x)
+#Plot the activation functions
+plt.figure(figsize=(10, 6))
+# Show the plots
+plt.tight_layout()
+plt.show()
+
+
+
+
+
+
+Q2. Write a python program to implement a NAND gate using a single layer perceptron learning rule
+import numpy as np
+# Define the NAND gate dataset (inputs and expected outputs)
+# Inputs (X)
+X = np.array([[0, 0],
+              [0, 1],
+              [1, 0],
+              [1, 1]])
+y = np.array([1, 1, 1, 0])  # output
+#Initialize weights and bias randomly
+weights = np.random.rand(2)
+bias = np.random.rand(1)
+# activation function
+def step_function(net_input):
+    return np.where(net_input >= 0, 1, 0)
+# perceptron learning rule
+learning_rate = 0.1
+max_epochs = 100
+def perceptron_train(X, y, weights, bias, learning_rate, max_epochs):
+    for epoch in range(max_epochs):
+        total_error = 0
+        print(f"\nEpoch {epoch + 1}")
+
+        for i in range(len(X)):
+            #Calculate net input (weighted sum + bias)
+            net_input = np.dot(X[i], weights) + bias
+
+            #Apply step function to get output
+            y_pred = step_function(net_input)
+
+            #Calculate error (target - predicted)
+            error = y[i] - y_pred
+
+            #Update weights and bias based on the error
+            weights += learning_rate * error * X[i]
+            bias += learning_rate * error
+
+            print(f"Input: {X[i]}, Predicted: {y_pred}, Expected: {y[i]}, Error: {error}")
+            total_error += abs(error)
+
+        # Stop training if there is no error
+        if total_error == 0:
+            print("Training complete after", epoch + 1, "epochs")
+            break
+
+    return weights, bias
+# Train the perceptron
+weights, bias = perceptron_train(X, y, weights, bias, learning_rate, max_epochs)
+
+# Test the perceptron
+def perceptron_predict(X, weights, bias):
+    net_input = np.dot(X, weights) + bias
+    return step_function(net_input)
+# Predict the outputs for all inputs of the NAND gate
+predictions = perceptron_predict(X, weights, bias)
+print("\nFinal weights:", weights)
+print("Final bias:", bias)
+print("Predictions for NAND gate:", predictions)
+
+
+
