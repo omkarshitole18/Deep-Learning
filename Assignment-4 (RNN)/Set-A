@@ -1,0 +1,292 @@
+Assignment 4
+Set A)
+1. Create a simple RNN model for generating data using data using text and predict the text using a pre-trained model.(Use ReLU and Softmax activation function).
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras.preprocessing.text import Tokenizer
+from tensorflow.keras.utils import to_categorical
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Embedding, SimpleRNN, Dense
+
+# Load shakespeare.txt (only first 250 characters)
+with open('/content/sample_data/shakespeare.txt', 'r') as file:
+    text = file.read()[:250]
+
+# Preprocess the text
+tokenizer = Tokenizer(char_level=True)  # Character-level tokenization
+tokenizer.fit_on_texts([text])
+total_chars = len(tokenizer.word_index) + 1  # Total unique characters
+
+# Convert the text into a sequence of integers
+input_sequences = []
+next_chars = []
+seq_length = 40  # Let's take 40 characters as input sequence
+
+for i in range(0, len(text) - seq_length):
+    input_sequences.append(text[i: i + seq_length])
+    next_chars.append(text[i + seq_length])
+
+# Convert input sequences to integer sequences
+X = np.array([tokenizer.texts_to_sequences([seq])[0] for seq in input_sequences])
+y = np.array([tokenizer.texts_to_sequences([next_char])[0][0] for next_char in next_chars])
+
+# Convert output to categorical (one-hot encoding)
+y = to_categorical(y, num_classes=total_chars)
+
+# Define the RNN model
+model = Sequential()
+model.add(Embedding(input_dim=total_chars, output_dim=64, input_length=seq_length))
+model.add(SimpleRNN(128, activation='relu', return_sequences=False))  # RNN with ReLU
+model.add(Dense(total_chars, activation='softmax'))  # Softmax for multi-class prediction
+
+# Compile the model
+model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+
+# Train the model
+model.fit(X, y, batch_size=64, epochs=100)
+
+# Save the model
+model.save('shakespeare_rnn.h5')
+
+# Load the pre-trained model (if available)
+pretrained_model = tf.keras.models.load_model('shakespeare_rnn.h5')
+
+def predict_text(seed_text, model, tokenizer, seq_length, num_chars_to_generate=100):
+    # Ensure the seed_text is at least seq_length long by padding if necessary
+    if len(seed_text) < seq_length:
+        seed_text = seed_text.rjust(seq_length)  # Pad with spaces on the left if needed
+
+    for _ in range(num_chars_to_generate):
+        # Tokenize the last 'seq_length' characters from the seed_text
+        token_list = tokenizer.texts_to_sequences([seed_text[-seq_length:]])[0]
+
+        # Ensure token_list has the correct length (seq_length)
+        token_list = np.pad(token_list, (seq_length - len(token_list), 0), 'constant')
+
+        # Reshape for model input
+        token_list = np.reshape(token_list, (1, seq_length))
+
+        # Predict the next character
+        predicted = np.argmax(model.predict(token_list, verbose=0), axis=-1)
+
+        # Convert the predicted index back to the corresponding character
+        output_char = tokenizer.index_word[predicted[0]]
+
+        # Append the predicted character to the seed_text
+        seed_text += output_char
+
+    return seed_text
+
+
+# Example of generating new text
+seed_text = "To be, or not to be, that is the question:\n"
+generated_text = predict_text(seed_text, pretrained_model, tokenizer, seq_length, num_chars_to_generate=100)
+print(generated_text)
+
+
+
+2) Write python program to implement time series forecasting in Recurrent Neural network using LSTM module. (Use monthly_milk_production.csv)
+#import necessary labries
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import MinMaxScaler
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense
+
+# Load the dataset
+data = pd.read_csv('/content/sample_data/monthly-milk-production-pounds.csv')
+data['Month'] = pd.to_datetime(data['Month'])
+data.set_index('Month', inplace=True)
+data = data.sort_index()
+
+# Visualize the data
+plt.figure(figsize=(10, 6))
+plt.plot(data, label='Monthly Milk Production')
+plt.xlabel('Date')
+plt.ylabel('Milk Production')
+plt.title('Monthly Milk Production')
+plt.legend()
+plt.show()
+
+# Prepare the data
+values = data.values
+scaler = MinMaxScaler(feature_range=(0, 1))
+scaled_values = scaler.fit_transform(values)
+
+def create_sequences(data, seq_length):
+    x, y = [], []
+    for i in range(len(data) - seq_length):
+        x.append(data[i:i + seq_length])
+        y.append(data[i + seq_length])
+    return np.array(x), np.array(y)
+
+SEQ_LENGTH = 12
+x, y = create_sequences(scaled_values, SEQ_LENGTH)
+
+# Split into training and testing sets
+train_size = int(len(x) * 0.8)
+x_train, x_test = x[:train_size], x[train_size:]
+y_train, y_test = y[:train_size], y[train_size:]
+
+# Build the LSTM model
+model = Sequential()
+model.add(LSTM(50, return_sequences=True, input_shape=(SEQ_LENGTH, 1)))
+model.add(LSTM(50))
+model.add(Dense(1))
+model.compile(optimizer='adam', loss='mean_squared_error')
+
+# Train the model
+history = model.fit(x_train, y_train, epochs=10, batch_size=1, verbose=1, validation_split=0.1)
+
+# Make predictions
+y_pred = model.predict(x_test)
+y_pred = scaler.inverse_transform(y_pred)
+y_test = scaler.inverse_transform(y_test)
+
+# Evaluate the model
+mse = mean_squared_error(y_test, y_pred)
+print(f"Mean Squared Error: {mse}")
+
+# Plot the results
+plt.figure(figsize=(12, 6))
+plt.plot(data.index[SEQ_LENGTH + train_size:], y_test, label='True Values')
+plt.plot(data.index[SEQ_LENGTH + train_size:], y_pred, label='Predictions')
+plt.xlabel('Date')
+plt.ylabel('Milk Production')
+plt.title('True Values vs Predictions')
+plt.legend()
+plt.show()
+
+
+
+3) Write a python program to predict a stock price from a mastercard stock dataset using LSTM and GRU models
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import MinMaxScaler
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, GRU, Dense
+
+
+data = pd.read_csv('/content/Mastercard_stock_history.csv')
+
+data['Date'] = pd.to_datetime(data['Date'])
+data.set_index('Date', inplace=True)
+data_values = data['Close'].values.reshape(-1, 1)
+
+scaler = MinMaxScaler(feature_range=(0, 1))
+scaled_data = scaler.fit_transform(data_values)
+
+def create_dataset(dataset, time_step=1):
+    dataX, dataY = [], []
+    for i in range(len(dataset) - time_step - 1):
+        a = dataset[i:(i + time_step), 0]
+        dataX.append(a)
+        dataY.append(dataset[i + time_step, 0])
+    return np.array(dataX), np.array(dataY)
+
+time_step = 30
+
+train_size = int(len(scaled_data) * 0.8)
+test_size = len(scaled_data) - train_size
+train_data, test_data = scaled_data[0:train_size, :], scaled_data[train_size:len(scaled_data), :]
+
+X_train, y_train = create_dataset(train_data, time_step)
+X_test, y_test = create_dataset(test_data, time_step)
+
+X_train = X_train.reshape(X_train.shape[0], X_train.shape[1], 1)
+X_test = X_test.reshape(X_test.shape[0], X_test.shape[1], 1)
+
+lstm_model = Sequential()
+lstm_model.add(LSTM(100, return_sequences=True, input_shape=(time_step, 1)))
+lstm_model.add(LSTM(100, return_sequences=False))
+lstm_model.add(Dense(1))
+lstm_model.compile(optimizer='adam', loss='mean_squared_error')
+
+gru_model = Sequential()
+gru_model.add(GRU(100, return_sequences=True, input_shape=(time_step, 1)))
+gru_model.add(GRU(100, return_sequences=False))
+gru_model.add(Dense(1))
+gru_model.compile(optimizer='adam', loss='mean_squared_error')
+
+lstm_model.fit(X_train, y_train, epochs=10, batch_size=64, validation_data=(X_test, y_test), verbose=1)
+
+gru_model.fit(X_train, y_train, epochs=10, batch_size=64, validation_data=(X_test, y_test), verbose=1)
+
+lstm_predict = lstm_model.predict(X_test)
+
+gru_predict = gru_model.predict(X_test)
+
+lstm_predict = scaler.inverse_transform(lstm_predict)
+gru_predict = scaler.inverse_transform(gru_predict)
+
+plt.figure(figsize=(10, 6))
+plt.plot(data.index[train_size + time_step + 1:], data_values[train_size + time_step + 1:], label='Original Data', color='blue')
+plt.plot(data.index[train_size + time_step + 1:], lstm_predict[:, 0], label='LSTM Prediction', color='green')
+plt.plot(data.index[train_size + time_step + 1:], gru_predict[:, 0], label='GRU Prediction', color='red')
+plt.xlabel('Date')
+plt.ylabel('Close Price')
+plt.title('Mastercard Stock Price Prediction using LSTM and GRU')
+plt.legend()
+plt.show()
+
+
+
+4 Write a python program to create a sequential model that processes sequences of integers, embeds each integer into a 64-dimensional vector, and then process the sequence of vectors using a LSTM layer
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Embedding, LSTM, Dense
+from tensorflow.keras.preprocessing.text import Tokenizer
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+
+# Sample text data (list of sentences)
+texts = [
+    "I love natural language processing",
+    "LSTM models are very powerful for sequential data",
+    "Embedding layers map words to vectors",
+    "Text data requires tokenization before training models",
+]
+
+# Parameters
+vocab_size = 10000  # Size of the vocabulary (number of unique tokens)
+embedding_dim = 64  # Embedding output dimension
+sequence_length = 10  # Maximum length of input sequences
+lstm_units = 128  # Number of LSTM units
+
+# Tokenize the text data
+tokenizer = Tokenizer(num_words=vocab_size, oov_token="<OOV>")
+tokenizer.fit_on_texts(texts)
+
+# Convert text to sequences of integers
+sequences = tokenizer.texts_to_sequences(texts)
+
+# Pad the sequences to ensure uniform input length
+padded_sequences = pad_sequences(sequences, maxlen=sequence_length, padding='post')
+
+# Define the Sequential model
+model = Sequential()
+
+# Add Embedding layer to map integer sequences to 64-dimensional vectors
+model.add(Embedding(input_dim=vocab_size, output_dim=embedding_dim, input_length=sequence_length))
+
+# Add LSTM layer to process the embedded sequences
+model.add(LSTM(lstm_units))
+
+# Add a Dense layer for output (this can be modified as per the problem, e.g., classification or regression)
+model.add(Dense(1, activation='sigmoid'))  # For binary classification
+
+# Compile the model
+model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+
+# Pass the padded sequences to the model for building it
+model.build(input_shape=(None, sequence_length))
+
+# Model summary
+model.summary()
+
+# Now you can train the model using padded_sequences and some labels (y)
+# Example:
+# labels = [0, 1, 1, 0]  # Binary labels for demonstration
+# model.fit(padded_sequences, labels, epochs=10)
+
