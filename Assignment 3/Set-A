@@ -1,0 +1,274 @@
+Assignment 3
+SET A
+Q1.Write a python program to create a Convolutational Base using CIFAR10 dataset and display the summary of the model.(Use ReLU activation Function)
+import tensorflow as tf
+from tensorflow.keras.datasets import cifar10
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense
+
+# Load CIFAR-10 dataset
+(x_train, y_train), (x_test, y_test) = cifar10.load_data()
+
+# Normalize the dataset
+x_train = x_train / 255.0
+x_test = x_test / 255.0
+
+# Define the convolutional base
+model = Sequential()
+model.add(Conv2D(32, (3, 3), activation='relu', input_shape=(32, 32, 3)))  # Convolutional layer 1
+model.add(MaxPooling2D((2, 2)))                                           # MaxPooling layer 1
+model.add(Conv2D(64, (3, 3), activation='relu'))                          # Convolutional layer 2
+model.add(MaxPooling2D((2, 2)))                                           # MaxPooling layer 2
+model.add(Conv2D(128, (3, 3), activation='relu'))                         # Convolutional layer 3
+model.add(MaxPooling2D((2, 2)))                                           # MaxPooling layer 3
+model.add(Flatten())                                                      # Flatten layer
+
+# Display the model summary
+model.summary()
+
+
+
+
+
+Q2. Write a python program to add the dense layers on the top of the above created model and display the summary, evaluate the accuaracy of the model
+import tensorflow as tf
+from tensorflow.keras.datasets import cifar10
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense
+from tensorflow.keras.utils import to_categorical
+
+# Load and preprocess the CIFAR-10 dataset
+(x_train, y_train), (x_test, y_test) = cifar10.load_data()
+x_train, x_test = x_train / 255.0, x_test / 255.0  # Normalize pixel values to [0, 1]
+y_train, y_test = to_categorical(y_train, 10), to_categorical(y_test, 10)  # One-hot encode labels
+
+# Define the model with additional dense layers
+model = Sequential([
+    # Convolutional base
+    Conv2D(32, (3, 3), activation='relu', input_shape=(32, 32, 3)),
+    MaxPooling2D((2, 2)),
+
+    Conv2D(64, (3, 3), activation='relu'),
+    MaxPooling2D((2, 2)),
+
+    Conv2D(128, (3, 3), activation='relu'),
+    MaxPooling2D((2, 2)),
+
+    # Flatten the output from the convolutional layers
+    Flatten(),
+
+    # Additional dense layers
+    Dense(128, activation='relu'),
+    Dense(64, activation='relu'),
+
+    # Output layer
+    Dense(10, activation='softmax')  # 10 classes for CIFAR-10
+])
+
+# Display the summary of the model
+model.summary()
+
+# Compile the model
+model.compile(optimizer='adam',
+              loss='categorical_crossentropy',
+              metrics=['accuracy'])
+
+# Train the model
+history = model.fit(x_train, y_train, epochs=10, batch_size=64, validation_split=0.1)
+
+# Evaluate the model
+test_loss, test_accuracy = model.evaluate(x_test, y_test)
+print(f"Test accuracy: {test_accuracy:.4f}")
+
+
+
+
+
+
+Q3. Write a python program to implement a Handwritten Digit Recognition system using CNN.(use MNIST Dataset)
+import tensorflow as tf
+from tensorflow.keras import layers, models
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Load the MNIST dataset
+(x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
+
+# Normalize the data
+x_train = x_train.astype('float32') / 255.0
+x_test = x_test.astype('float32') / 255.0
+
+# Reshape the data to include the channel dimension
+x_train = x_train.reshape(-1, 28, 28, 1)
+x_test = x_test.reshape(-1, 28, 28, 1)
+
+# Define the CNN model
+model = models.Sequential([
+    layers.Conv2D(32, (3, 3), activation='relu', input_shape=(28, 28, 1)),
+    layers.MaxPooling2D((2, 2)),
+    layers.Conv2D(64, (3, 3), activation='relu'),
+    layers.MaxPooling2D((2, 2)),
+    layers.Conv2D(64, (3, 3), activation='relu'),
+    layers.Flatten(),
+    layers.Dense(64, activation='relu'),
+    layers.Dense(10, activation='softmax')
+])
+
+# Compile the model
+model.compile(optimizer='adam',
+              loss='sparse_categorical_crossentropy',
+              metrics=['accuracy'])
+
+# Train the model
+model.fit(x_train, y_train, epochs=2, validation_split=0.2)
+
+# Evaluate the model
+test_loss, test_acc = model.evaluate(x_test, y_test, verbose=2)
+print(f'\nTest accuracy: {test_acc}')
+
+# Make predictions
+predictions = model.predict(x_test)
+
+# Plot the first test image and its prediction
+plt.figure(figsize=(10, 4))
+
+plt.subplot(1, 5,  1)
+plt.imshow(x_test[1].reshape(28, 28), cmap=plt.cm.binary)
+plt.title(f'Pred: {np.argmax(predictions[1])}')
+plt.axis('off')
+plt.show()
+
+
+
+
+
+Q4. Consider any image of .jpeg format and apply the convolution layer, activation layer and pooling layer operation to extract the inside feature. Visualize the outputs of all layers
+import tensorflow as tf
+from tensorflow.keras import layers, models
+import numpy as np
+import matplotlib.pyplot as plt
+from google.colab import files
+from PIL import Image
+from scipy.ndimage import convolve
+
+# Upload an image file
+uploaded = files.upload()
+
+# Load the uploaded image
+image_path = next(iter(uploaded.keys()))
+img = Image.open(image_path).resize((128, 128))  # Resize to ensure consistency
+img_array = np.array(img) / 255.0  # Normalize pixel values to [0, 1]
+
+# Display the original image
+plt.figure(figsize=(6, 6))
+plt.title('Original Image')
+plt.imshow(img_array)
+plt.axis('off')
+plt.show()
+
+# Define filter kernels
+def prewitt_filter():
+    return np.array([[1, 0, -1],
+                     [1, 0, -1],
+                     [1, 0, -1]]), np.array([[1, 1, 1],
+                                               [0, 0, 0],
+                                               [-1, -1, -1]])
+
+def sobel_filter():
+    return np.array([[1, 0, -1],
+                     [2, 0, -2],
+                     [1, 0, -1]]), np.array([[1, 2, 1],
+                                               [0, 0, 0],
+                                               [-1, -2, -1]])
+
+def laplacian_filter():
+    return np.array([[0, 1, 0],
+                     [1, -4, 1],
+                     [0, 1, 0]])
+
+def robinson_filters():
+    return [np.array([[1, 0, -1],
+                      [1, 0, -1],
+                      [1, 0, -1]]),
+
+            np.array([[1, 1, 0],
+                      [0, 0, -1],
+                      [0, -1, -1]]),
+
+            np.array([[0, 1, 1],
+                      [-1, 0, 1],
+                      [-1, -1, 0]]),
+    ]
+
+def kirsch_filters():
+    return [np.array([[5, 5, 5],
+                      [-3, 0, -3],
+                      [-3, -3, -3]]),
+            np.array([[5, 5, -3],
+                      [5, 0, -3],
+                      [-3, -3, -3]]),
+            np.array([[5, -3, -3],
+                      [5, 0, -3],
+                      [5, -3, -3]]),
+            np.array([[-3, -3, -3],
+                      [5, 0, -3],
+                      [5, 5, 5]]),
+            np.array([[0, -3, -3],
+                      [5, 0, -3],
+                      [5, 5, 5]]),
+            np.array([[-3, -3, -3],
+                      [-3, 0, 5],
+                      [5, 5, 5]]),
+            np.array([[-3, -3, -3],
+                      [-3, 0, 5],
+                      [-3, 5, 5]]),
+            np.array([[-3, -3, -3],
+                      [-3, 0, -3],
+                      [5, 5, 5]])]
+
+# Function to apply filters
+def apply_filter(image, kernel):
+    return convolve(image, kernel, mode='reflect')
+
+# Convert the image to grayscale
+img_gray = np.mean(img_array, axis=2)
+
+# Apply filters
+prewitt_kernels = prewitt_filter()
+sobel_kernels = sobel_filter()
+laplacian_kernel = laplacian_filter()
+rob_filters = robinson_filters()
+kirch_filters = kirsch_filters()
+
+# Collect results for visualization
+results = {'Original': img_gray}
+
+# Prewitt Filter
+for i, kernel in enumerate(prewitt_kernels):
+    results[f'Prewitt Filter {i+1}'] = apply_filter(img_gray, kernel)
+
+# # Sobel Filter
+for i, kernel in enumerate(sobel_kernels):
+    results[f'Sobel Filter {i+1}'] = apply_filter(img_gray, kernel)
+
+# # Laplacian Filter
+# results['Laplacian'] = apply_filter(img_gray, laplacian_kernel)
+
+# Robinson Filters
+for i, kernel in enumerate(rob_filters):
+    results[f'Robinson Filter {i+1}'] = apply_filter(img_gray, kernel)
+
+# # Kirsch Filters
+for i, kernel in enumerate(kirch_filters):
+    results[f'Kirsch Filter {i+1}'] = apply_filter(img_gray, kernel)
+
+# Display all filtered images
+plt.figure(figsize=(20, 20))
+for i, (title, img) in enumerate(results.items()):
+    plt.subplot(6, 5, i + 1)
+    plt.imshow(img, cmap='gray')
+    plt.title(title)
+    plt.axis('off')
+
+plt.show()
+
