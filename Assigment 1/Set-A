@@ -1,0 +1,237 @@
+Assignment 1
+Set A
+Q1. Write a python program to implement and plot the given below Activation Functions of neural networks
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+a)Linear
+# Linear activation functions
+def linear(x):
+    return x
+# Linear Activation Function return: f(x)=x
+plt.subplot(2, 3, 1)
+plt.plot(x, linear(x), label='Linear', color='b')
+plt.title('Linear Activation')
+plt.xlabel('x')
+plt.ylabel('f(x)')
+plt.grid()
+
+b)Sigmoid
+# Sigmoid activation functions
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
+# Sigmoid
+plt.subplot(2, 3, 2)
+plt.plot(x, sigmoid(x), label='Sigmoid', color='g')
+plt.title('Sigmoid Activation')
+plt.xlabel('x')
+plt.ylabel('f(x)')
+plt.grid()
+
+c)Tanh
+# Tanh activation functions
+def tanh(x):
+    return np.tanh(x)
+# Tanh
+plt.subplot(2, 3, 3)
+plt.plot(x, tanh(x), label='Tanh', color='r')
+plt.title('Tanh Activation')
+plt.xlabel('x')
+plt.ylabel('f(x)')
+plt.grid()
+
+d)reLU
+# ReLU activation functions
+def relu(x):
+    return np.maximum(0, x)
+# ReLU
+plt.subplot(2, 3, 4)
+plt.plot(x, relu(x), label='ReLU', color='m')
+plt.title('ReLU Activation')
+plt.xlabel('x')
+plt.ylabel('f(x)')
+plt.grid()
+
+e)SoftMax
+# Softmax activation functions
+def softmax(x):
+    exp_x = np.exp(x - np.max(x))  # Stability improvement by subtracting max
+    return exp_x / exp_x.sum(axis=0)
+# Softmax
+x_for_softmax = np.linspace(-5, 5, 10)
+plt.subplot(2, 3, 5)
+plt.plot(x_for_softmax, softmax(x_for_softmax), label='Softmax', color='c')
+plt.title('Softmax Activation')
+plt.xlabel('x')
+plt.ylabel('f(x)')
+plt.grid()
+
+# range of input values
+x = np.linspace(-10, 10, 100)
+# Plot each activation function
+plt.figure(figsize=(12, 8))
+
+plt.tight_layout()
+plt.show()
+
+
+Q2.Implement a single layer preception using a tensortflow library and calulate the accuracy of the model on the testing data.(use MNIST dataset)
+
+import tensorflow as tf
+from tensorflow.keras.datasets import mnist
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Flatten
+from tensorflow.keras.utils import to_categorical
+
+#Load the MNIST dataset
+(x_train, y_train), (x_test, y_test) = mnist.load_data()
+
+#Preprocess the data and Normalize the pixel values to [0, 1]
+x_train = x_train.astype('float32') / 255.0
+x_test = x_test.astype('float32') / 255.0
+
+#Preprocess the data and Normalize the pixel values to [0, 1]
+x_train = x_train.astype('float32') / 255.0
+x_test = x_test.astype('float32') / 255.0
+
+# Convert labels to one-hot encoding
+y_train = to_categorical(y_train, 10)
+y_test = to_categorical(y_test, 10)
+
+#Build the Single-Layer Perceptron model
+model = Sequential([
+    Flatten(input_shape=(28, 28)),       # Flatten the 28x28 images into a 1D array
+    Dense(10, activation='softmax')      # Single dense layer with 10 output units (for 10 digits)
+])
+
+# Step 4: Compile the model
+model.compile(optimizer='sgd',           # Stochastic Gradient Descent optimizer
+              loss='categorical_crossentropy',  # Loss function for multi-class classification
+              metrics=['accuracy'])      # Evaluate the model using accuracy
+
+#Train the model
+model.fit(x_train, y_train, epochs=10, batch_size=32, validation_data=(x_test, y_test))
+
+#Test the model on test data
+test_loss, test_acc = model.evaluate(x_test, y_test)
+
+print(f'Test accuracy: {test_acc:.4f}')
+
+
+Q3. Write a python program to implement OR gate using a single layer preception learning rule
+import numpy as np
+# Define the OR gate dataset (inputs and expected outputs)
+X = np.array([[0, 0],
+              [0, 1],
+              [1, 0],
+              [1, 1]])
+
+y = np.array([0, 1, 1, 1])  #output
+# Initialize weights and bias randomly
+weights = np.random.rand(2)
+bias = np.random.rand(1
+# Define the activation function (step function)
+def step_function(net_input):
+    return np.where(net_input >= 0, 1, 0)
+# Define the perceptron learning rule
+learning_rate = 0.1
+max_epochs = 100  # Maximum number of iterations
+def perceptron_train(X, y, weights, bias, learning_rate, max_epochs):
+    for epoch in range(max_epochs):
+        total_error = 0
+        print(f"\nEpoch {epoch + 1}")
+
+        for i in range(len(X)):
+            #Calculate net input (weighted sum + bias)
+            net_input = np.dot(X[i], weights) + bias
+
+            #Apply step function to get output
+            y_pred = step_function(net_input)
+
+            #Calculate error (target - predicted)
+            error = y[i] - y_pred
+
+            #Update weights and bias based on the error
+            weights += learning_rate * error * X[i]
+            bias += learning_rate * error
+
+            print(f"Input: {X[i]}, Predicted: {y_pred}, Expected: {y[i]}, Error: {error}")
+            total_error += abs(error)
+
+        # Stop training if there is no error
+        if total_error == 0:
+            print("Training complete after", epoch + 1, "epochs")
+            break
+
+    return weights, bias
+# Step 5: Train the perceptron
+weights, bias = perceptron_train(X, y, weights, bias, learning_rate, max_epochs)
+# Step 6: Test the perceptron
+def perceptron_predict(X, weights, bias):
+    net_input = np.dot(X, weights) + bias
+    return step_function(net_input)
+# Predict the outputs for all inputs of the OR gate
+predictions = perceptron_predict(X, weights, bias)
+print("\nFinal weights:", weights)
+print("Final bias:", bias)
+print("Predictions for OR gate:", predictions)
+
+
+Q4. Write a python program to implement AND gate using a layer preception learning rule.
+import numpy as np
+#Define the AND gate dataset (inputs and expected outputs)
+# Inputs (X)
+X = np.array([[0, 0],
+              [0, 1],
+              [1, 0],
+              [1, 1]])
+y = np.array([0, 0, 0, 1])  #output
+#Initialize weights and bias randomly
+weights = np.random.rand(2)  # Two weights for two inputs
+bias = np.random.rand(1)     # One bias
+#Define the activation function (step function)
+def step_function(net_input):
+    return np.where(net_input >= 0, 1, 0)
+#Define the perceptron learning rule
+learning_rate = 0.1
+max_epochs = 100
+def perceptron_train(X, y, weights, bias, learning_rate, max_epochs):
+    for epoch in range(max_epochs):
+        total_error = 0
+        print(f"\nEpoch {epoch + 1}")
+
+        for i in range(len(X)):
+            # Calculate net input (weighted sum + bias)
+            net_input = np.dot(X[i], weights) + bias
+
+            # Apply step function to get output
+            y_pred = step_function(net_input)
+
+            # Calculate error (target - predicted)
+            error = y[i] - y_pred
+
+            # Update weights and bias based on the error
+            weights += learning_rate * error * X[i]
+            bias += learning_rate * error
+
+            print(f"Input: {X[i]}, Predicted: {y_pred}, Expected: {y[i]}, Error: {error}")
+            total_error += abs(error)
+
+        # Stop training if there is no error
+        if total_error == 0:
+            print("Training complete after", epoch + 1, "epochs")
+            break
+
+    return weights, bias
+#Train the perceptron
+weights, bias = perceptron_train(X, y, weights, bias, learning_rate, max_epochs)
+#Test the perceptron
+def perceptron_predict(X, weights, bias):
+    net_input = np.dot(X, weights) + bias
+    return step_function(net_input)
+# Predict the outputs for all inputs of the AND gate
+predictions = perceptron_predict(X, weights, bias)
+print("\nFinal weights:", weights)
+print("Final bias:", bias)
+print("Predictions for AND gate:", predictions)
