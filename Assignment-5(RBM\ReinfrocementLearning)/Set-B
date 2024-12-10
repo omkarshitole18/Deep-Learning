@@ -1,0 +1,190 @@
+Set B)
+1) Write a python program to implement digit classification using autoencoders.(Use MNIST dataset)
+import numpy as np
+import matplotlib.pyplot as plt
+from tensorflow.keras.layers import Input, Dense
+from tensorflow.keras.models import Model
+from tensorflow.keras.datasets import mnist
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score
+from sklearn.preprocessing import StandardScaler
+
+# Step 1: Load and preprocess the MNIST dataset
+(x_train, y_train), (x_test, y_test) = mnist.load_data()
+x_train = x_train.reshape((x_train.shape[0], -1)).astype('float32') / 255.0
+x_test = x_test.reshape((x_test.shape[0], -1)).astype('float32') / 255.0
+
+# Step 2: Build the autoencoder model
+input_dim = x_train.shape[1]
+encoding_dim = 32  # Dimension of the encoding
+
+# Define the input layer
+input_layer = Input(shape=(input_dim,))
+# Encoder layers
+encoded = Dense(128, activation='relu')(input_layer)
+encoded = Dense(64, activation='relu')(encoded)
+encoded = Dense(encoding_dim, activation='relu')(encoded)
+
+# Decoder layers
+decoded = Dense(64, activation='relu')(encoded)
+decoded = Dense(128, activation='relu')(decoded)
+decoded = Dense(input_dim, activation='sigmoid')(decoded)
+
+# Combine encoder and decoder into an autoencoder model
+autoencoder = Model(input_layer, decoded)
+
+# Define the encoder model
+encoder = Model(input_layer, encoded)
+
+# Step 3: Compile and train the autoencoder
+autoencoder.compile(optimizer='adam', loss='binary_crossentropy')
+autoencoder.fit(x_train, x_train, epochs=5, batch_size=256, shuffle=True, validation_data=(x_test, x_test))
+
+# Step 4: Use the encoder to transform the data
+x_train_encoded = encoder.predict(x_train)
+x_test_encoded = encoder.predict(x_test)
+
+# Step 5: Train a logistic regression model on the encoded data
+classifier = LogisticRegression(max_iter=1000)
+classifier.fit(x_train_encoded, y_train)
+
+# Step 6: Make predictions and evaluate the classifier
+y_pred = classifier.predict(x_test_encoded)
+accuracy = accuracy_score(y_test, y_pred)
+print(f"Accuracy: {accuracy * 100:.2f}%")
+
+# Optional: Visualize some reconstructed images
+decoded_imgs = autoencoder.predict(x_test)
+
+n = 10  # number of digits to display
+plt.figure(figsize=(20, 4))
+for i in range(n):
+    # display original
+    ax = plt.subplot(2, n, i + 1)
+    plt.imshow(x_test[i].reshape(28, 28), cmap='gray')
+    plt.axis('off')
+
+    # display reconstruction
+    ax = plt.subplot(2, n, i + 1 + n)
+    plt.imshow(decoded_imgs[i].reshape(28, 28), cmap='gray')
+    plt.axis('off')
+
+plt.show()
+
+
+
+
+
+
+
+
+
+2) Write a python program to implement Tic-tac-Toe using reinforcement learning.
+import numpy as np
+import random
+
+class TicTacToe:
+    def __init__(self):
+        self.board = np.zeros((3, 3), dtype=int)
+        self.current_player = 1  # Player 1 starts
+
+    def reset(self):
+        self.board.fill(0)
+        self.current_player = 1
+        return self.board.flatten()
+
+    def step(self, action):
+        row, col = divmod(action, 3)
+        if self.board[row, col] == 0:  # Check if the cell is empty
+            self.board[row, col] = self.current_player
+            reward = self.check_winner()
+            done = reward != 0 or np.all(self.board != 0)  # Check for win or draw
+            self.current_player = 3 - self.current_player  # Switch players
+            return self.board.flatten(), reward, done
+        else:
+            return self.board.flatten(), -10, False  # Invalid move
+
+    def check_winner(self):
+        for player in [1, 2]:
+            if any(np.all(self.board[i, :] == player) for i in range(3)) or \
+               any(np.all(self.board[:, i] == player) for i in range(3)) or \
+               np.all(np.diag(self.board) == player) or \
+               np.all(np.diag(np.fliplr(self.board)) == player):
+                return player
+        return 0  # No winner
+
+    def available_actions(self):
+        return np.where(self.board.flatten() == 0)[0]
+
+class QLearningAgent:
+    def __init__(self, learning_rate=0.1, discount_factor=0.9, exploration_prob=0.1):
+        self.q_table = {}  # State-action values
+        self.lr = learning_rate
+        self.gamma = discount_factor
+        self.epsilon = exploration_prob
+
+    def get_state_key(self, state):
+        return str(state)
+
+    def choose_action(self, state):
+        if random.uniform(0, 1) < self.epsilon:
+            return random.choice(env.available_actions())
+        state_key = self.get_state_key(state)
+        if state_key not in self.q_table:
+            self.q_table[state_key] = np.zeros(9)  # 3x3 grid
+        return np.argmax(self.q_table[state_key]) if np.any(self.q_table[state_key]) else random.choice(env.available_actions())
+
+    def update_q_table(self, state, action, reward, next_state):
+        state_key = self.get_state_key(state)
+        next_state_key = self.get_state_key(next_state)
+
+        if state_key not in self.q_table:
+            self.q_table[state_key] = np.zeros(9)
+        if next_state_key not in self.q_table:
+            self.q_table[next_state_key] = np.zeros(9)
+
+        best_next_action = np.argmax(self.q_table[next_state_key])
+        td_target = reward + self.gamma * self.q_table[next_state_key][best_next_action]
+        td_delta = td_target - self.q_table[state_key][action]
+        self.q_table[state_key][action] += self.lr * td_delta
+
+# Training the agent
+def train_agent(episodes=10000):
+    for episode in range(episodes):
+        state = env.reset()
+        done = False
+        while not done:
+            action = agent.choose_action(state)
+            next_state, reward, done = env.step(action)
+            agent.update_q_table(state, action, reward, next_state)
+            state = next_state
+
+# Testing the agent
+def test_agent():
+    state = env.reset()
+    done = False
+    while not done:
+        action = agent.choose_action(state)
+        next_state, reward, done = env.step(action)
+        print("Action:", action, "State:\n", env.board)
+        state = next_state
+    print("Final board:\n", env.board)
+    if reward == 1:
+        print("Agent wins!")
+    elif reward == -1:
+        print("Opponent wins!")
+    else:
+        print("It's a draw!")
+
+# Main program
+if __name__ == "__main__":
+    env = TicTacToe()
+    agent = QLearningAgent()
+
+    # Train the agent
+    train_agent(episodes=5000)
+
+    # Test the agent
+    print("Testing agent:")
+    test_agent()
+
