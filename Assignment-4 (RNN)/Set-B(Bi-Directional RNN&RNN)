@@ -151,12 +151,6 @@ plt.show()
 
 
 
-
-
-
-
-
-
 2) Write a python program to recognize handwritten digits using RNN
 import tensorflow as tf
 from tensorflow.keras.datasets import mnist
