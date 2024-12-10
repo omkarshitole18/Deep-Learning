@@ -1,0 +1,127 @@
+
+Set B (Practice Assignment)
+Q1.Write a python program to implement XNOR gate using a multi layer perceptron learning rule
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense
+from tensorflow.keras.optimizers import Adam
+
+# Define the XNOR gate dataset (inputs and expected outputs)
+X = np.array([[0, 0],
+              [0, 1],
+              [1, 0],
+              [1, 1]])
+
+y = np.array([1, 0, 0, 1])  # Output for XNOR gate
+
+# Define the MLP model
+model = Sequential([
+    Dense(4, input_dim=2, activation='relu'),  # Hidden layer with 4 neurons and ReLU activation
+    Dense(4, activation='relu'),                # Another hidden layer with 4 neurons
+    Dense(1, activation='sigmoid')             # Output layer with sigmoid activation
+])
+
+# Compile the model
+model.compile(optimizer=Adam(learning_rate=0.01),
+              loss='binary_crossentropy',
+              metrics=['accuracy'])
+
+# Define a custom callback to print training progress
+class TrainingProgress(tf.keras.callbacks.Callback):
+    def on_epoch_end(self, epoch, logs=None):
+        if epoch < 10:  # Print detailed progress only for the first 10 epochs
+            print(f"\nEpoch {epoch + 1}")
+            print(f"Loss: {logs['loss']:.4f}, Accuracy: {logs['accuracy']:.4f}")
+
+# Train the model
+history = model.fit(X, y, epochs=10, verbose=0, callbacks=[TrainingProgress()])
+
+# Evaluate the model
+loss, accuracy = model.evaluate(X, y, verbose=0)
+print(f"\nModel loss: {loss:.4f}")
+print(f"Model accuracy: {accuracy:.4f}")
+
+# Predict the outputs for all inputs of the XNOR gate
+predictions = model.predict(X)
+predictions = (predictions > 0.5).astype(int)  # Convert probabilities to binary outputs
+
+print("\nFinal weights and biases:")
+for i, layer in enumerate(model.layers):
+    weights, biases = layer.get_weights()
+    print(f"Layer {i + 1}: {layer.name}")
+    print(f"Weights: \n{weights}")
+    print(f"Biases: \n{biases}")
+
+print("\nPredictions for XNOR gate:")
+for i, pred in enumerate(predictions):
+    print(f"Input: {X[i]}, Predicted: {pred[0]}, Expected: {y[i]}")
+
+
+
+
+
+
+
+
+Q.2 Write a python program to implement Feedforward neural network using Tanh activation function
+import pandas as pd
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import mean_squared_error
+import matplotlib.pyplot as plt
+
+# Load the dataset
+df = pd.read_csv('/content/sample_data/california_housing_train.csv')
+
+# Display the first few rows of the dataset
+print(df.head())
+
+# Preprocess the data
+# For simplicity, we'll use all the features except 'median_house_value' which is our target
+features = df.drop(columns=['median_house_value'])
+target = df['median_house_value']
+
+# Handle missing values (if any)
+features = features.fillna(features.mean())
+
+# Normalize the features
+scaler = StandardScaler()
+X = scaler.fit_transform(features)
+y = target.values
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Build the ANN model
+model = Sequential([
+    Dense(64, activation='relu', input_shape=(X_train.shape[1],)),
+    Dense(32, activation='relu'),
+    Dense(1)  # Output layer for regression
+])
+
+# Compile the model
+model.compile(optimizer='adam', loss='mean_squared_error')
+
+# Train the model
+history = model.fit(X_train, y_train, epochs=5, batch_size=32, validation_split=0.1, verbose=1)
+
+# Evaluate the model
+y_pred = model.predict(X_test)
+mse = mean_squared_error(y_test, y_pred)
+print(f"Mean Squared Error: {mse}")
+
+# Plot training and validation loss
+plt.figure(figsize=(10, 6))
+plt.plot(history.history['loss'], label='Training Loss')
+plt.plot(history.history['val_loss'], label='Validation Loss')
+plt.title('Model Loss During Training')
+plt.xlabel('Epoch')
+plt.ylabel('Loss')
+plt.legend()
+plt.grid(True)
+plt.show()
